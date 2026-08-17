@@ -44,6 +44,16 @@ class GitHubClient:
             raise
         return True
 
+    def release_assets(self, repository: str, tag: str) -> set[str]:
+        encoded_tag = urllib.parse.quote(tag, safe="")
+        try:
+            release = self.get(f"/repos/{repository}/releases/tags/{encoded_tag}")
+        except urllib.error.HTTPError as error:
+            if error.code == 404:
+                return set()
+            raise
+        return {asset["name"] for asset in release.get("assets", [])}
+
 
 def release_asset_name(tag: str) -> str:
     version = tag[1:] if tag.startswith("v") else tag
@@ -58,7 +68,7 @@ def release_work(
 ) -> dict[str, str] | None:
     tag = release["tag_name"]
     asset_name = release_asset_name(tag)
-    assets = {asset["name"] for asset in release.get("assets", [])}
+    assets = client.release_assets(automation_repository, tag)
     prerelease = bool(release.get("prerelease"))
     needs_dmg = force or asset_name not in assets
     needs_ios = False

@@ -13,9 +13,10 @@ SPEC.loader.exec_module(MODULE)
 
 
 class FakeClient:
-    def __init__(self, releases, existing_refs=()):
+    def __init__(self, releases, existing_refs=(), mirror_assets=None):
         self.releases = releases
         self.existing_refs = set(existing_refs)
+        self.mirror_assets = mirror_assets or {}
 
     def get(self, path):
         if "/releases/tags/" in path:
@@ -28,15 +29,17 @@ class FakeClient:
     def ref_exists(self, repository, ref):
         return (repository, ref) in self.existing_refs
 
+    def release_assets(self, repository, tag):
+        return set(self.mirror_assets.get((repository, tag), ()))
 
-def release(release_id, tag, prerelease=False, assets=()):
+
+def release(release_id, tag, prerelease=False):
     return {
         "id": release_id,
         "tag_name": tag,
         "draft": False,
         "prerelease": prerelease,
         "published_at": f"2026-08-{release_id:02d}T00:00:00Z",
-        "assets": [{"name": name} for name in assets],
     }
 
 
@@ -58,8 +61,9 @@ class DiscoverTests(unittest.TestCase):
         tag = "v2.4.0"
         asset = MODULE.release_asset_name(tag)
         client = FakeClient(
-            [release(11, tag, assets=[asset])],
+            [release(11, tag)],
             {("owner/fork", f"tags/{MODULE.MARKER_PREFIX}{tag}")},
+            {("owner/fork", tag): {asset}},
         )
         result = MODULE.discover(client, "upstream/repo", "owner/fork", 10, "", False)
         self.assertEqual(result, {"found": "false"})
@@ -67,7 +71,10 @@ class DiscoverTests(unittest.TestCase):
     def test_promoted_prerelease_still_gets_testflight(self):
         tag = "v2.4.0"
         asset = MODULE.release_asset_name(tag)
-        client = FakeClient([release(11, tag, prerelease=False, assets=[asset])])
+        client = FakeClient(
+            [release(11, tag, prerelease=False)],
+            mirror_assets={("owner/fork", tag): {asset}},
+        )
         result = MODULE.discover(client, "upstream/repo", "owner/fork", 10, "", False)
         self.assertEqual(result["needs_dmg"], "false")
         self.assertEqual(result["needs_ios"], "true")
@@ -76,8 +83,9 @@ class DiscoverTests(unittest.TestCase):
         tag = "v2.4.0"
         asset = MODULE.release_asset_name(tag)
         client = FakeClient(
-            [release(11, tag, assets=[asset])],
+            [release(11, tag)],
             {("owner/fork", f"tags/{MODULE.MARKER_PREFIX}{tag}")},
+            {("owner/fork", tag): {asset}},
         )
         result = MODULE.discover(client, "upstream/repo", "owner/fork", 99, tag, True)
         self.assertEqual(result["needs_dmg"], "true")

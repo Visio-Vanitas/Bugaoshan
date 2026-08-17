@@ -200,16 +200,17 @@ jobs:
           if-no-files-found: error
 
   publish-dmg:
-    name: Sign, notarize, and publish DMG
+    name: Sign, notarize, and publish mirror DMG
     needs: [discover, build-unsigned]
     if: needs.discover.outputs.needs_dmg == 'true'
     runs-on: macos-15
     timeout-minutes: 45
     permissions:
-      contents: read
+      contents: write
     env:
       RELEASE_TAG: ${{ needs.discover.outputs.tag }}
       DMG_ASSET_NAME: ${{ needs.discover.outputs.asset_name }}
+      UPSTREAM_PRERELEASE: ${{ needs.discover.outputs.prerelease }}
       APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
       APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
     steps:
@@ -288,13 +289,28 @@ jobs:
           spctl --assess --type open --context context:primary-signature -v "$DMG_PATH"
           echo "DMG_PATH=$DMG_PATH" >> "$GITHUB_ENV"
 
-      - name: Upload DMG to upstream release
+      - name: Upload DMG to mirror release
         env:
-          GH_TOKEN: ${{ secrets.UPSTREAM_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          : "${GH_TOKEN:?missing UPSTREAM_GITHUB_TOKEN}"
+          if ! gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            create_args=(
+              release create "$RELEASE_TAG"
+              --repo "$GITHUB_REPOSITORY"
+              --target "$GITHUB_SHA"
+              --title "$RELEASE_TAG"
+              --notes "Automated Apple build for https://github.com/$UPSTREAM_REPOSITORY/releases/tag/$RELEASE_TAG"
+            )
+            if [[ "$UPSTREAM_PRERELEASE" == "true" ]]; then
+              create_args+=(--prerelease)
+            fi
+            gh "${create_args[@]}"
+          fi
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --prerelease="$UPSTREAM_PRERELEASE"
           gh release upload "$RELEASE_TAG" "$DMG_PATH" \
-            --repo "$UPSTREAM_REPOSITORY" --clobber
+            --repo "$GITHUB_REPOSITORY" --clobber
 
       - name: Delete temporary keychain
         if: always()

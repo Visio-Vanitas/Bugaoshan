@@ -8,7 +8,8 @@
 处理规则：
 
 - 每个正式版和预发布版都构建 arm64 macOS DMG，使用 Developer ID 签名、Apple
-  公证并 staple 后上传到上游同名 Release。
+  公证并 staple 后上传到本 fork 的同名 Release。上游 Release 正文使用按 tag 生成的
+  固定链接指向该文件，因此无需授予本工作流上游仓库写权限。
 - 只有正式版构建 iOS IPA。上传 App Store Connect 并等待处理后，将 build 加入当前的
   内部和外部测试组；外部组随后提交 Beta App Review。
 - 不自动提交生产 App Store 上架审核，也不删除或强制过期旧的 TestFlight build。
@@ -47,8 +48,8 @@ TestFlight。
 | `MACOS_DEVELOPER_ID_PROFILE_BASE64` | `Bugaoshan Developer ID` 描述文件，经 Base64 编码 |
 | `IOS_APP_STORE_PROFILE_BASE64` | 主应用 App Store 描述文件，经 Base64 编码 |
 | `IOS_WIDGET_APP_STORE_PROFILE_BASE64` | Widget App Store 描述文件，经 Base64 编码 |
-| `UPSTREAM_GITHUB_TOKEN` | 仅选择上游仓库、仅授予 `Contents: Read and write` 的细粒度 token |
 
 仓库可以保持公开：Secrets 不会写入 Git 历史，工作流也不监听
 `pull_request`/`pull_request_target`。签名材料只写入 GitHub 托管 runner 的临时目录；
-任务结束时删除临时 Keychain。不要把日常使用的 `gh` 登录令牌放入此 Secret。
+任务结束时删除临时 Keychain。发布 fork Release 使用任务自带、仅限本仓库的
+`GITHUB_TOKEN`，不保存个人 GitHub 令牌。
