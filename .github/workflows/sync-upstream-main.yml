@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Sync fork branch
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
         run: |
           set -euo pipefail
 
