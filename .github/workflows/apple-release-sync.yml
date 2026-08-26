@@ -418,13 +418,17 @@ jobs:
           fi
 
       - name: Update TestFlight groups and submit Beta App Review
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          gh release view "$RELEASE_TAG" --repo "$UPSTREAM_REPOSITORY" --json body -q .body > "$RUNNER_TEMP/whats_new.txt"
           python3 .github/scripts/app_store_connect.py \
             --key "$API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" \
             --issuer-id "$APPLE_API_ISSUER_ID" publish \
             --bundle-id "$IOS_BUNDLE_ID" --version "$MARKETING_VERSION" \
             --build-number "$BUILD_NUMBER" \
-            --group-ids "$TESTFLIGHT_BETA_GROUP_IDS"
+            --group-ids "$TESTFLIGHT_BETA_GROUP_IDS" \
+            --whats-new-file "$RUNNER_TEMP/whats_new.txt"
 
       - name: Mark TestFlight release complete
         env:

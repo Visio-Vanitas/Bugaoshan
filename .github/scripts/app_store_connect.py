@@ -222,6 +222,58 @@ def submit_beta_review(client: AppStoreConnectClient, build_id: str) -> None:
     print("Submitted build for Beta App Review")
 
 
+def set_whats_new(client: AppStoreConnectClient, build_id: str, whats_new: str) -> None:
+    if not whats_new:
+        return
+    # App Store Connect has a 4000 character limit for whatsNew
+    whats_new = whats_new[:3900]
+    response = client.get(f"/v1/builds/{build_id}/betaBuildLocalizations")
+    localizations = response.get("data", [])
+    target_locales = ["zh-Hans", "en-US"]
+
+    for locale in target_locales:
+        existing = next((loc for loc in localizations if loc["attributes"]["locale"] == locale), None)
+        if existing:
+            loc_id = existing["id"]
+            client.request(
+                "PATCH",
+                f"/v1/betaBuildLocalizations/{loc_id}",
+                {
+                    "data": {
+                        "type": "betaBuildLocalizations",
+                        "id": loc_id,
+                        "attributes": {
+                            "whatsNew": whats_new
+                        }
+                    }
+                }
+            )
+            print(f"Updated TestFlight What's New for {locale}", flush=True)
+        else:
+            client.request(
+                "POST",
+                "/v1/betaBuildLocalizations",
+                {
+                    "data": {
+                        "type": "betaBuildLocalizations",
+                        "attributes": {
+                            "whatsNew": whats_new,
+                            "locale": locale
+                        },
+                        "relationships": {
+                            "build": {
+                                "data": {
+                                    "type": "builds",
+                                    "id": build_id
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+            print(f"Created TestFlight What's New for {locale}", flush=True)
+
+
 def publish_testflight(
     client: AppStoreConnectClient,
     bundle_id: str,
@@ -229,6 +281,7 @@ def publish_testflight(
     build_number: str,
     group_ids: list[str],
     timeout_seconds: int,
+    whats_new: str = "",
 ) -> None:
     if not group_ids:
         raise RuntimeError("at least one TestFlight beta group ID is required")
@@ -241,6 +294,9 @@ def publish_testflight(
     build = wait_for_build(
         client, app["id"], marketing_version, build_number, timeout_seconds
     )
+
+    set_whats_new(client, build["id"], whats_new)
+
     for group_id in group_ids:
         add_build_to_group(client, group_id, build["id"])
         print(f"Added build to TestFlight group {groups[group_id]['attributes']['name']}")
@@ -276,6 +332,7 @@ def main() -> None:
     publish_parser.add_argument("--build-number", required=True)
     publish_parser.add_argument("--group-ids", required=True)
     publish_parser.add_argument("--timeout", type=int, default=2700)
+    publish_parser.add_argument("--whats-new-file", type=Path)
     args = parser.parse_args()
 
     if args.command == "groups":
@@ -313,6 +370,9 @@ def main() -> None:
         return
 
     group_ids = [value.strip() for value in args.group_ids.split(",") if value.strip()]
+    whats_new = ""
+    if args.whats_new_file and args.whats_new_file.exists():
+        whats_new = args.whats_new_file.read_text(encoding="utf-8")
     publish_testflight(
         make_client(args),
         args.bundle_id,
@@ -320,6 +380,7 @@ def main() -> None:
         args.build_number,
         group_ids,
         args.timeout,
+        whats_new=whats_new,
     )
 
 
