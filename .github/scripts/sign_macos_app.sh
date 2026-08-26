@@ -62,7 +62,7 @@ fi
 
 sandbox=$(
   codesign -d --entitlements :- "$app_path" 2>/dev/null \
-    | plutil -extract com.apple.security.app-sandbox raw -o - -
+    | plutil -extract 'com\.apple\.security\.app-sandbox' raw -o - -
 )
 if [[ "$sandbox" != "true" ]]; then
   echo "app sandbox entitlement is missing" >&2

@@ -23,8 +23,8 @@ permissions:
   contents: read
 
 env:
-  UPSTREAM_REPOSITORY: The-Brotherhood-of-SCU/Bugaoshan
-  UPSTREAM_RELEASE_BASELINE_ID: "370689291"
+  UPSTREAM_REPOSITORY: Visio-Vanitas/Bugaoshan
+  UPSTREAM_RELEASE_BASELINE_ID: "0"
   APPLE_TEAM_ID: 2F6UXH5569
   MACOS_BUNDLE_ID: io.github.thebrotherhoodofscu.bugaoshan
   IOS_BUNDLE_ID: io.github.thebrotherhoodofscu.bugaoshan
