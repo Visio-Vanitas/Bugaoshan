@@ -222,9 +222,28 @@ def submit_beta_review(client: AppStoreConnectClient, build_id: str) -> None:
     print("Submitted build for Beta App Review")
 
 
+def _strip_emoji(text: str) -> str:
+    import re
+    return re.sub(
+        r"[\U00002190-\U000021FF"
+        r"\U00002300-\U000023FF"
+        r"\U00002600-\U000027BF"
+        r"\U00002900-\U00002BFF"
+        r"\U0000FE00-\U0000FE0F"
+        r"\U0001F000-\U0001FBFF"
+        r"\U0000200D"
+        r"\U000020E3"
+        r"\U00003299\U00003297]+",
+        "",
+        text,
+    )
+
+
 def set_whats_new(client: AppStoreConnectClient, build_id: str, whats_new: str) -> None:
     if not whats_new:
         return
+    # App Store Connect rejects emoji in whatsNew text
+    whats_new = _strip_emoji(whats_new)
     # App Store Connect has a 4000 character limit for whatsNew
     whats_new = whats_new[:3900]
     response = client.get(f"/v1/builds/{build_id}/betaBuildLocalizations")
