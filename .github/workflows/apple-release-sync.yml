@@ -1,0 +1,459 @@
+name: Sync Apple releases
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Upstream release tag; empty means auto-discover"
+        required: false
+        type: string
+      force:
+        description: "Reprocess the selected release"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: apple-release-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UPSTREAM_REPOSITORY: Visio-Vanitas/Bugaoshan
+  UPSTREAM_RELEASE_BASELINE_ID: "0"
+  APPLE_TEAM_ID: 2F6UXH5569
+  MACOS_BUNDLE_ID: io.github.thebrotherhoodofscu.bugaoshan
+  IOS_BUNDLE_ID: io.github.thebrotherhoodofscu.bugaoshan
+  TESTFLIGHT_BETA_GROUP_IDS: f936400e-9537-4aa7-9454-df0b33b45ccc,a549d08a-60d8-4ac6-a566-d915a3e1c949
+
+jobs:
+  discover:
+    name: Discover upstream release
+    runs-on: ubuntu-latest
+    outputs:
+      found: ${{ steps.release.outputs.found }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      release_id: ${{ steps.release.outputs.release_id }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      asset_name: ${{ steps.release.outputs.asset_name }}
+      needs_dmg: ${{ steps.release.outputs.needs_dmg }}
+      needs_ios: ${{ steps.release.outputs.needs_ios }}
+    steps:
+      - name: Checkout automation
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Find next pending release
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MANUAL_TAG: ${{ inputs.tag }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          args=(
+            --upstream "$UPSTREAM_REPOSITORY"
+            --automation "$GITHUB_REPOSITORY"
+            --baseline-id "$UPSTREAM_RELEASE_BASELINE_ID"
+            --tag "${MANUAL_TAG:-}"
+          )
+          if [[ "$FORCE" == "true" ]]; then
+            args+=(--force)
+          fi
+          python3 .github/scripts/apple_release_discover.py "${args[@]}"
+
+      - name: Write summary
+        env:
+          FOUND: ${{ steps.release.outputs.found }}
+          TAG: ${{ steps.release.outputs.tag }}
+          NEEDS_DMG: ${{ steps.release.outputs.needs_dmg }}
+          NEEDS_IOS: ${{ steps.release.outputs.needs_ios }}
+        run: |
+          if [[ "$FOUND" != "true" ]]; then
+            echo "No pending upstream Apple release." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "### Upstream release: $TAG"
+            echo "- macOS DMG: $NEEDS_DMG"
+            echo "- TestFlight + Beta App Review: $NEEDS_IOS"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-unsigned:
+    name: Build unsigned ${{ needs.discover.outputs.tag }}
+    needs: discover
+    if: needs.discover.outputs.found == 'true'
+    runs-on: macos-15
+    timeout-minutes: 75
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted automation
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout upstream release tag
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.UPSTREAM_REPOSITORY }}
+          ref: ${{ needs.discover.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: source
+
+      - name: Select latest Xcode version
+        run: |
+          echo "Current Xcode version:"
+          xcodebuild -version
+          echo "Available Xcode versions:"
+          ls -d /Applications/Xcode* || true
+          LATEST_XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n 1)
+          if [ -n "$LATEST_XCODE" ]; then
+            echo "Selecting latest Xcode: $LATEST_XCODE"
+            sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
+          fi
+          echo "Selected Xcode version:"
+          xcodebuild -version
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.18.0
+        with:
+          flutter-version: "3.44.8"
+          channel: stable
+          cache: true
+
+      # This job deliberately has no Apple or upstream-write secrets. Upstream
+      # build hooks execute only here; publishing jobs consume archives as data.
+      - name: Prepare Flutter sources
+        working-directory: source
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
+
+      - name: Read git metadata
+        id: meta
+        working-directory: source
+        run: |
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "commit_date=$(git log -1 --format=%ci)" >> "$GITHUB_OUTPUT"
+
+      - name: Build unsigned macOS archive
+        if: needs.discover.outputs.needs_dmg == 'true'
+        working-directory: source
+        env:
+          RELEASE_TAG: ${{ needs.discover.outputs.tag }}
+          GIT_COMMIT: ${{ steps.meta.outputs.commit }}
+          GIT_COMMIT_DATE: ${{ steps.meta.outputs.commit_date }}
+        run: |
+          flutter build macos --release --config-only --no-pub \
+            --dart-define="GIT_TAG=$RELEASE_TAG" \
+            --dart-define="GIT_COMMIT=$GIT_COMMIT" \
+            --dart-define="GIT_COMMIT_DATE=$GIT_COMMIT_DATE"
+          pod install --project-directory=macos
+          xcodebuild archive \
+            -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$RUNNER_TEMP/Bugaoshan.xcarchive" \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            PRODUCT_BUNDLE_IDENTIFIER="$MACOS_BUNDLE_ID" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          APP_PATH="$RUNNER_TEMP/Bugaoshan.xcarchive/Products/Applications/Bugaoshan.app"
+          test "$(lipo -archs "$APP_PATH/Contents/MacOS/Bugaoshan")" = "arm64"
+          tar -czf "$RUNNER_TEMP/macos-unsigned.tar.gz" \
+            -C "$RUNNER_TEMP" Bugaoshan.xcarchive
+
+      - name: Mark iOS export compliance
+        if: needs.discover.outputs.needs_ios == 'true'
+        working-directory: source
+        run: |
+          /usr/libexec/PlistBuddy -c 'Delete :ITSAppUsesNonExemptEncryption' \
+            ios/Runner/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c \
+            'Add :ITSAppUsesNonExemptEncryption bool false' ios/Runner/Info.plist
+
+      - name: Build unsigned iOS archive
+        if: needs.discover.outputs.needs_ios == 'true'
+        working-directory: source
+        env:
+          RELEASE_TAG: ${{ needs.discover.outputs.tag }}
+          GIT_COMMIT: ${{ steps.meta.outputs.commit }}
+          GIT_COMMIT_DATE: ${{ steps.meta.outputs.commit_date }}
+        run: |
+          flutter build ipa --release --no-codesign --no-pub \
+            --dart-define="GIT_TAG=$RELEASE_TAG" \
+            --dart-define="GIT_COMMIT=$GIT_COMMIT" \
+            --dart-define="GIT_COMMIT_DATE=$GIT_COMMIT_DATE"
+          tar -czf "$RUNNER_TEMP/ios-unsigned.tar.gz" \
+            -C build/ios/archive Runner.xcarchive
+
+      - name: Upload unsigned macOS archive
+        if: needs.discover.outputs.needs_dmg == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-macos-${{ needs.discover.outputs.release_id }}
+          path: ${{ runner.temp }}/macos-unsigned.tar.gz
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload unsigned iOS archive
+        if: needs.discover.outputs.needs_ios == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-ios-${{ needs.discover.outputs.release_id }}
+          path: ${{ runner.temp }}/ios-unsigned.tar.gz
+          retention-days: 1
+          if-no-files-found: error
+
+  publish-dmg:
+    name: Sign, notarize, and publish mirror DMG
+    needs: [discover, build-unsigned]
+    if: needs.discover.outputs.needs_dmg == 'true'
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.discover.outputs.tag }}
+      DMG_ASSET_NAME: ${{ needs.discover.outputs.asset_name }}
+      UPSTREAM_PRERELEASE: ${{ needs.discover.outputs.prerelease }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+    steps:
+      - name: Checkout trusted automation
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download unsigned macOS archive
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-macos-${{ needs.discover.outputs.release_id }}
+          path: ${{ runner.temp }}/unsigned
+
+      - name: Install Developer ID identity
+        env:
+          P12_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_P12_PASSWORD }}
+          API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          PROFILE_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_PROFILE_BASE64 }}
+        run: |
+          : "${P12_BASE64:?missing MACOS_DEVELOPER_ID_P12_BASE64}"
+          : "${P12_PASSWORD:?missing MACOS_DEVELOPER_ID_P12_PASSWORD}"
+          : "${API_PRIVATE_KEY:?missing APPLE_API_PRIVATE_KEY}"
+          : "${APPLE_API_KEY_ID:?missing APPLE_API_KEY_ID}"
+          : "${APPLE_API_ISSUER_ID:?missing APPLE_API_ISSUER_ID}"
+          : "${PROFILE_BASE64:?missing MACOS_DEVELOPER_ID_PROFILE_BASE64}"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          KEYCHAIN_PATH="$RUNNER_TEMP/macos-signing.keychain-db"
+          API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+          PROFILE_PATH="$RUNNER_TEMP/Bugaoshan_Developer_ID.provisionprofile"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "API_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
+          echo "PROFILE_PATH=$PROFILE_PATH" >> "$GITHUB_ENV"
+          printf '%s' "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/macos.p12"
+          printf '%s' "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          printf '%s' "$API_PRIVATE_KEY" > "$API_KEY_PATH"
+          chmod 600 "$API_KEY_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/macos.p12" -k "$KEYCHAIN_PATH" \
+            -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+
+      - name: Sign macOS app
+        run: |
+          tar -xzf "$RUNNER_TEMP/unsigned/macos-unsigned.tar.gz" -C "$RUNNER_TEMP"
+          APP_PATH="$RUNNER_TEMP/Bugaoshan.xcarchive/Products/Applications/Bugaoshan.app"
+          bash .github/scripts/sign_macos_app.sh \
+            "$APP_PATH" \
+            .github/apple/macos-release.entitlements \
+            "$PROFILE_PATH" \
+            'Developer ID Application: ACBR TECHNOLOGY LTD (2F6UXH5569)' \
+            "$MACOS_BUNDLE_ID"
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+
+      - name: Create, notarize, and staple DMG
+        run: |
+          DMG_ROOT="$RUNNER_TEMP/dmg-root"
+          DMG_PATH="$RUNNER_TEMP/$DMG_ASSET_NAME"
+          mkdir -p "$DMG_ROOT"
+          ditto "$APP_PATH" "$DMG_ROOT/Bugaoshan.app"
+          ln -s /Applications "$DMG_ROOT/Applications"
+          hdiutil create -volname Bugaoshan -srcfolder "$DMG_ROOT" \
+            -ov -format UDZO "$DMG_PATH"
+          codesign --force --timestamp --sign 'Developer ID Application: ACBR TECHNOLOGY LTD (2F6UXH5569)' "$DMG_PATH"
+          xcrun notarytool submit "$DMG_PATH" \
+            --key "$API_KEY_PATH" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER_ID" \
+            --wait --timeout 30m
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+          spctl --assess --type open --context context:primary-signature -v "$DMG_PATH"
+          echo "DMG_PATH=$DMG_PATH" >> "$GITHUB_ENV"
+
+      - name: Upload DMG to mirror release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            create_args=(
+              release create "$RELEASE_TAG"
+              --repo "$GITHUB_REPOSITORY"
+              --target "$GITHUB_SHA"
+              --title "$RELEASE_TAG"
+              --notes "Automated Apple build for https://github.com/$UPSTREAM_REPOSITORY/releases/tag/$RELEASE_TAG"
+            )
+            if [[ "$UPSTREAM_PRERELEASE" == "true" ]]; then
+              create_args+=(--prerelease)
+            fi
+            gh "${create_args[@]}"
+          fi
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --prerelease="$UPSTREAM_PRERELEASE"
+          gh release upload "$RELEASE_TAG" "$DMG_PATH" \
+            --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Delete temporary keychain
+        if: always()
+        run: security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+
+  publish-testflight:
+    name: Sign, upload, and submit TestFlight build
+    needs: [discover, build-unsigned]
+    if: needs.discover.outputs.needs_ios == 'true'
+    runs-on: macos-15
+    timeout-minutes: 75
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.discover.outputs.tag }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+    steps:
+      - name: Checkout trusted automation
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download unsigned iOS archive
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-ios-${{ needs.discover.outputs.release_id }}
+          path: ${{ runner.temp }}/unsigned
+
+      - name: Install App Store signing identity
+        env:
+          P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          APP_PROFILE_BASE64: ${{ secrets.IOS_APP_STORE_PROFILE_BASE64 }}
+          WIDGET_PROFILE_BASE64: ${{ secrets.IOS_WIDGET_APP_STORE_PROFILE_BASE64 }}
+        run: |
+          : "${P12_BASE64:?missing IOS_DISTRIBUTION_P12_BASE64}"
+          : "${P12_PASSWORD:?missing IOS_DISTRIBUTION_P12_PASSWORD}"
+          : "${API_PRIVATE_KEY:?missing APPLE_API_PRIVATE_KEY}"
+          : "${APPLE_API_KEY_ID:?missing APPLE_API_KEY_ID}"
+          : "${APPLE_API_ISSUER_ID:?missing APPLE_API_ISSUER_ID}"
+          : "${APP_PROFILE_BASE64:?missing IOS_APP_STORE_PROFILE_BASE64}"
+          : "${WIDGET_PROFILE_BASE64:?missing IOS_WIDGET_APP_STORE_PROFILE_BASE64}"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          KEYCHAIN_PATH="$RUNNER_TEMP/ios-signing.keychain-db"
+          API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+          PROFILE_DIR="$RUNNER_TEMP/profiles"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "API_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
+          echo "PROFILE_DIR=$PROFILE_DIR" >> "$GITHUB_ENV"
+          printf '%s' "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/ios.p12"
+          printf '%s' "$API_PRIVATE_KEY" > "$API_KEY_PATH"
+          chmod 600 "$API_KEY_PATH"
+          mkdir -p "$PROFILE_DIR" "$HOME/Library/MobileDevice/Provisioning Profiles"
+          printf '%s' "$APP_PROFILE_BASE64" | base64 --decode \
+            > "$PROFILE_DIR/app.mobileprovision"
+          printf '%s' "$WIDGET_PROFILE_BASE64" | base64 --decode \
+            > "$PROFILE_DIR/widget.mobileprovision"
+          cp "$PROFILE_DIR/app.mobileprovision" \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/app.mobileprovision"
+          cp "$PROFILE_DIR/widget.mobileprovision" \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/widget.mobileprovision"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/ios.p12" -k "$KEYCHAIN_PATH" \
+            -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security \
+            -T /usr/bin/xcodebuild
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+
+      - name: Export signed IPA
+        run: |
+          tar -xzf "$RUNNER_TEMP/unsigned/ios-unsigned.tar.gz" -C "$RUNNER_TEMP"
+          ARCHIVE="$RUNNER_TEMP/Runner.xcarchive"
+          APP_INFO="$ARCHIVE/Products/Applications/Runner.app/Info.plist"
+          MARKETING_VERSION="$(plutil -extract CFBundleShortVersionString raw -o - "$APP_INFO")"
+          BUILD_NUMBER="$(plutil -extract CFBundleVersion raw -o - "$APP_INFO")"
+          IOS_EXPORT="$RUNNER_TEMP/ios-export"
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE" \
+            -exportPath "$IOS_EXPORT" \
+            -exportOptionsPlist .github/apple/ExportOptions.plist
+          IPA_PATH="$(find "$IOS_EXPORT" -maxdepth 1 -name '*.ipa' -print -quit)"
+          test -n "$IPA_PATH"
+          echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
+          echo "MARKETING_VERSION=$MARKETING_VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+
+      - name: Upload IPA when build is new
+        env:
+          API_PRIVATE_KEYS_DIR: ${{ runner.temp }}
+        run: |
+          if python3 .github/scripts/app_store_connect.py \
+            --key "$API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" \
+            --issuer-id "$APPLE_API_ISSUER_ID" exists \
+            --bundle-id "$IOS_BUNDLE_ID" --version "$MARKETING_VERSION" \
+            --build-number "$BUILD_NUMBER"; then
+            echo "Build already exists in App Store Connect; skipping duplicate upload."
+          else
+            xcrun altool --upload-app --type ios --file "$IPA_PATH" \
+              --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_ISSUER_ID"
+          fi
+
+      - name: Update TestFlight groups and submit Beta App Review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$RELEASE_TAG" --repo "$UPSTREAM_REPOSITORY" --json body -q .body > "$RUNNER_TEMP/whats_new.txt"
+          python3 .github/scripts/app_store_connect.py \
+            --key "$API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" \
+            --issuer-id "$APPLE_API_ISSUER_ID" publish \
+            --bundle-id "$IOS_BUNDLE_ID" --version "$MARKETING_VERSION" \
+            --build-number "$BUILD_NUMBER" \
+            --group-ids "$TESTFLIGHT_BETA_GROUP_IDS" \
+            --whats-new-file "$RUNNER_TEMP/whats_new.txt"
+
+      - name: Mark TestFlight release complete
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          marker="tags/apple-ci/testflight/$RELEASE_TAG"
+          gh api "repos/$GITHUB_REPOSITORY/git/ref/$marker" >/dev/null 2>&1 || \
+            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/$marker" -f "sha=$GITHUB_SHA"
+
+      - name: Delete temporary keychain
+        if: always()
+        run: security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true

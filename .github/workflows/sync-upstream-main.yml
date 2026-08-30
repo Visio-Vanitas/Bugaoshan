@@ -1,0 +1,42 @@
+name: Sync upstream main
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Merge upstream into main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sync fork branch
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          response="$(gh api \
+            --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/merge-upstream" \
+            -f branch=main)"
+
+          message="$(jq -r '.message' <<<"$response")"
+          merge_type="$(jq -r '.merge_type // "none"' <<<"$response")"
+
+          {
+            echo '## Upstream sync'
+            echo
+            echo "- Result: ${message}"
+            echo "- Merge type: ${merge_type}"
+          } >> "$GITHUB_STEP_SUMMARY"
