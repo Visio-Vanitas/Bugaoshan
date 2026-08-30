@@ -144,6 +144,13 @@ jobs:
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "commit_date=$(git log -1 --format=%ci)" >> "$GITHUB_OUTPUT"
 
+      - name: Compute unique build number
+        id: buildnum
+        run: |
+          unique="$(date -u +%y%m%d)$(printf '%02d' ${{ github.run_attempt }})"
+          echo "build_number=$unique" >> "$GITHUB_OUTPUT"
+          echo "Build number: $unique"
+
       - name: Build unsigned macOS archive
         if: needs.discover.outputs.needs_dmg == 'true'
         working-directory: source
@@ -151,8 +158,10 @@ jobs:
           RELEASE_TAG: ${{ needs.discover.outputs.tag }}
           GIT_COMMIT: ${{ steps.meta.outputs.commit }}
           GIT_COMMIT_DATE: ${{ steps.meta.outputs.commit_date }}
+          BUILD_NUMBER: ${{ steps.buildnum.outputs.build_number }}
         run: |
           flutter build macos --release --config-only --no-pub \
+            --build-number="$BUILD_NUMBER" \
             --dart-define="GIT_TAG=$RELEASE_TAG" \
             --dart-define="GIT_COMMIT=$GIT_COMMIT" \
             --dart-define="GIT_COMMIT_DATE=$GIT_COMMIT_DATE"
@@ -187,8 +196,10 @@ jobs:
           RELEASE_TAG: ${{ needs.discover.outputs.tag }}
           GIT_COMMIT: ${{ steps.meta.outputs.commit }}
           GIT_COMMIT_DATE: ${{ steps.meta.outputs.commit_date }}
+          BUILD_NUMBER: ${{ steps.buildnum.outputs.build_number }}
         run: |
           flutter build ipa --release --no-codesign --no-pub \
+            --build-number="$BUILD_NUMBER" \
             --dart-define="GIT_TAG=$RELEASE_TAG" \
             --dart-define="GIT_COMMIT=$GIT_COMMIT" \
             --dart-define="GIT_COMMIT_DATE=$GIT_COMMIT_DATE"
