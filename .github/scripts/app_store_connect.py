@@ -201,7 +201,7 @@ def submit_beta_review(client: AppStoreConnectClient, build_id: str) -> None:
         f"/v1/builds/{build_id}/betaAppReviewSubmission",
         allowed_statuses=(404,),
     )
-    if existing:
+    if existing and existing.get("data"):
         state = existing["data"]["attributes"]["betaReviewState"]
         if state in {"WAITING_FOR_REVIEW", "IN_REVIEW", "APPROVED"}:
             print(f"Beta App Review already {state}")
