@@ -203,6 +203,18 @@ jobs:
             --dart-define="GIT_TAG=$RELEASE_TAG" \
             --dart-define="GIT_COMMIT=$GIT_COMMIT" \
             --dart-define="GIT_COMMIT_DATE=$GIT_COMMIT_DATE"
+          # --no-codesign leaves binaries unsigned, so xcodebuild
+          # -exportArchive cannot recover entitlements from the archive.
+          # Ad-hoc sign with the project entitlements so the export step
+          # can merge them with the provisioning profile.
+          ARCHIVE=build/ios/archive/Runner.xcarchive
+          APP="$ARCHIVE/Products/Applications/Runner.app"
+          codesign --force --sign - \
+            --entitlements ios/CourseWidget/CourseWidgetExtension.entitlements \
+            "$APP/PlugIns/CourseWidgetExtension.appex"
+          codesign --force --sign - \
+            --entitlements ios/Runner/Runner.entitlements \
+            "$APP"
           tar -czf "$RUNNER_TEMP/ios-unsigned.tar.gz" \
             -C build/ios/archive Runner.xcarchive
 
