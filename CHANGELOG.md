@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-08-31
+
+### Fixed
+- 修复 macOS 包启动即报错无法使用的问题（移除不稳定的 Sentry 集成）
+- 修复 iOS/macOS 桌面小组件在 app 恢复前台时不同步数据的问题
+- 修复 iOS Runner target 重复的 InfoPlist.xcstrings 导致 Xcode 编译失败
+- 修复 iOS 小组件 lockScreenEmptyStateTitle 重复定义导致编译失败
+
+### Changed
+- 重构课程表页面代码结构与交互体验
+
 ## [2.4.0] - 2026-08-30
 
 ### Added
