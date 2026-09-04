@@ -1263,6 +1263,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planCompletionCourses => 'Courses';
 
   @override
+  String get planCompletionPlanFallback => 'Training Program';
+
+  @override
   String get planCompletionRateLimited =>
       'Too many requests, please try again later';
 
@@ -1499,6 +1502,78 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get networkDeviceOperationSuccess => 'Operation successful';
+
+  @override
+  String get passpointTitle => 'Passive Authentication';
+
+  @override
+  String get passpointDesc =>
+      'Bind device MAC to auto authenticate on campus network';
+
+  @override
+  String get passpointAddDevice => 'Add Device';
+
+  @override
+  String get passpointUserInfo => 'User Information';
+
+  @override
+  String get passpointUserGroup => 'User Group';
+
+  @override
+  String get passpointAccountState => 'Account State';
+
+  @override
+  String get passpointOnline => 'Online';
+
+  @override
+  String get passpointOffline => 'Offline';
+
+  @override
+  String get passpointMyDevices => 'My Devices';
+
+  @override
+  String get passpointExpireTime => 'Expire Time';
+
+  @override
+  String get passpointExpireLongest => 'Max 6 years';
+
+  @override
+  String get passpointExit => 'Device Exit';
+
+  @override
+  String get passpointMac => 'MAC Address';
+
+  @override
+  String get passpointCancelAuth => 'Cancel Passive Auth';
+
+  @override
+  String get passpointCancelAuthConfirm =>
+      'Are you sure you want to cancel passive authentication for this device?';
+
+  @override
+  String get passpointOperationSuccess => 'Operation successful';
+
+  @override
+  String get operationFailed => 'Operation failed';
+
+  @override
+  String get passpointMacRequired => 'Please enter MAC';
+
+  @override
+  String get passpointMacInvalid => 'Invalid MAC format, need 12 hex digits';
+
+  @override
+  String get passpointExpireRequired => 'Please enter binding validity';
+
+  @override
+  String get passpointExpireInvalid => 'Validity must be between 0 and 365';
+
+  @override
+  String get passpointExpireHint => '0-365 days, 0 means max 6 years';
+
+  @override
+  String get passpointAddWarning =>
+      'Note: once passive authentication is enabled, the device will auto join the campus network and dormitory traffic will be billed. Please use with caution!';
 
   @override
   String get captchaLoadFailed => 'Failed to load captcha';
@@ -1839,6 +1914,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dockLabelNetworkDevice => 'Network';
+
+  @override
+  String get dockLabelPasspoint => 'Passive';
 
   @override
   String get dockLabelBalanceQuery => 'Electricity';
@@ -2619,6 +2697,124 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dockLabelLeave => 'Service Hall';
+
+  @override
+  String get dockLabelRepair => 'Repair';
+
+  @override
+  String get repairTitle => 'Online Repair';
+
+  @override
+  String get repairDesc =>
+      'Submit dorm/classroom facility repairs and track progress';
+
+  @override
+  String get repairTabSubmit => 'Submit';
+
+  @override
+  String get repairTabMyTickets => 'My Repairs';
+
+  @override
+  String get repairAddress => 'Fault Address';
+
+  @override
+  String get repairSelectAddress => 'Please select a fault address';
+
+  @override
+  String get repairProject => 'Repair Item';
+
+  @override
+  String get repairSelectProject => 'Please select a repair item';
+
+  @override
+  String get repairSelectCategory => 'Please select a category first';
+
+  @override
+  String get repairNoProjectInCategory => 'No repair items in this category';
+
+  @override
+  String get repairSelectProjectHint =>
+      'Select a fault address first to load repair items';
+
+  @override
+  String get repairContent => 'Description';
+
+  @override
+  String get repairContentHint =>
+      'Describe the fault in detail to help the technician bring tools';
+
+  @override
+  String get repairContentRequired => 'Please fill in the description';
+
+  @override
+  String get repairPhotos => 'Photos / Videos';
+
+  @override
+  String get repairImageUploading => 'Uploading image…';
+
+  @override
+  String get repairSchedule => 'Expected Repair Time';
+
+  @override
+  String get repairAllowNoOne => 'Allow repair when no one is home';
+
+  @override
+  String get repairBookDate => 'Select Date';
+
+  @override
+  String get repairBookTime => 'Select Time Slot';
+
+  @override
+  String get repairNotSelected => 'Not selected';
+
+  @override
+  String get repairNoBookDate => 'No available booking dates';
+
+  @override
+  String get repairNoBookTime => 'No available time slots for this date';
+
+  @override
+  String get repairSubmit => 'Submit Repair';
+
+  @override
+  String get repairSubmitSuccess => 'Repair submitted successfully';
+
+  @override
+  String get repairSubmitFailed => 'Failed to submit repair, please try again';
+
+  @override
+  String get repairTicket => 'Repair Ticket';
+
+  @override
+  String get repairArea => 'Fault Location';
+
+  @override
+  String get repairAddAddress => 'Add Address';
+
+  @override
+  String get repairSelectArea => 'Select Area';
+
+  @override
+  String get repairAddressDetail => 'Detailed Address';
+
+  @override
+  String get repairAddressDetailRequired =>
+      'Please fill in the detailed address';
+
+  @override
+  String get repairPhoneRequired => 'Please fill in the phone number';
+
+  @override
+  String get repairPhoneInvalid => 'Invalid phone number format';
+
+  @override
+  String get repairAddressSaved => 'Address saved';
+
+  @override
+  String get repairImageTypeInvalid => 'Only JPG/PNG/HEIC images are supported';
+
+  @override
+  String get repairImageTooLarge => 'Image must be smaller than 10MB';
 
   @override
   String get serviceHallTitle => 'Service Hall';

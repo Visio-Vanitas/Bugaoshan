@@ -12,6 +12,7 @@ const String dockIdPlanCompletion = 'plan_completion';
 const String dockIdTrainProgram = 'train_program';
 const String dockIdClassroom = 'classroom';
 const String dockIdNetworkDevice = 'network_device';
+const String dockIdPasspoint = 'passpoint';
 const String dockIdBalanceQuery = 'balance_query';
 const String dockIdAcademicCalendar = 'academic_calendar';
 const String dockIdFitnessTest = 'fitness_test';
@@ -21,6 +22,7 @@ const String dockIdClassScheduleInquiry = 'class_schedule_inquiry';
 const String dockIdExamPlan = 'exam_plan';
 const String dockIdZysc = 'zysc';
 const String dockIdLeave = 'leave';
+const String dockIdRepair = 'repair';
 
 const Duration kHttpTimeout = Duration(seconds: 15);
 

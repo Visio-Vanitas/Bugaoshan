@@ -1223,6 +1223,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planCompletionCourses => '课程';
 
   @override
+  String get planCompletionPlanFallback => '培养方案';
+
+  @override
   String get planCompletionRateLimited => '请勿频繁刷新，请稍后再试';
 
   @override
@@ -1452,6 +1455,76 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get networkDeviceOperationSuccess => '操作成功';
+
+  @override
+  String get passpointTitle => '无感认证';
+
+  @override
+  String get passpointDesc => '绑定设备 MAC，接入校园网自动认证';
+
+  @override
+  String get passpointAddDevice => '添加无感设备';
+
+  @override
+  String get passpointUserInfo => '用户信息';
+
+  @override
+  String get passpointUserGroup => '用户组';
+
+  @override
+  String get passpointAccountState => '账户状态';
+
+  @override
+  String get passpointOnline => '在线';
+
+  @override
+  String get passpointOffline => '离线';
+
+  @override
+  String get passpointMyDevices => '我的设备';
+
+  @override
+  String get passpointExpireTime => '到期时间';
+
+  @override
+  String get passpointExpireLongest => '最长有效期6年';
+
+  @override
+  String get passpointExit => '无感设备出口';
+
+  @override
+  String get passpointMac => 'MAC 地址';
+
+  @override
+  String get passpointCancelAuth => '取消无感认证';
+
+  @override
+  String get passpointCancelAuthConfirm => '确定要取消该设备的无感认证吗？';
+
+  @override
+  String get passpointOperationSuccess => '操作成功';
+
+  @override
+  String get operationFailed => '操作失败';
+
+  @override
+  String get passpointMacRequired => '请填写MAC';
+
+  @override
+  String get passpointMacInvalid => 'MAC 格式无效，需 12 位十六进制';
+
+  @override
+  String get passpointExpireRequired => '请填写绑定有效期';
+
+  @override
+  String get passpointExpireInvalid => '有效期需在 0-365 之间';
+
+  @override
+  String get passpointExpireHint => '0-365 天，0 表示最长有效期 6 年';
+
+  @override
+  String get passpointAddWarning =>
+      '特别提醒：自助开通无感知设备（MAC）后设备将自动接入校园网，学生宿舍区域将自动计时，请谨慎选择！';
 
   @override
   String get captchaLoadFailed => '验证码加载失败';
@@ -1782,6 +1855,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dockLabelNetworkDevice => '校园网';
+
+  @override
+  String get dockLabelPasspoint => '无感';
 
   @override
   String get dockLabelBalanceQuery => '电费';
@@ -2537,6 +2613,120 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dockLabelLeave => '办事大厅';
+
+  @override
+  String get dockLabelRepair => '报修';
+
+  @override
+  String get repairTitle => '在线报修';
+
+  @override
+  String get repairDesc => '提交宿舍/教室设施报修并跟踪维修进度';
+
+  @override
+  String get repairTabSubmit => '我要报修';
+
+  @override
+  String get repairTabMyTickets => '我的报修';
+
+  @override
+  String get repairAddress => '故障地址';
+
+  @override
+  String get repairSelectAddress => '请选择故障地址';
+
+  @override
+  String get repairProject => '维修项目';
+
+  @override
+  String get repairSelectProject => '请选择维修项目';
+
+  @override
+  String get repairSelectCategory => '请先选择类别';
+
+  @override
+  String get repairNoProjectInCategory => '该类别下暂无维修项目';
+
+  @override
+  String get repairSelectProjectHint => '请先选择故障地址以加载维修项目';
+
+  @override
+  String get repairContent => '故障描述';
+
+  @override
+  String get repairContentHint => '请描述故障详细情况，便于维修师傅携带工具';
+
+  @override
+  String get repairContentRequired => '请填写故障描述';
+
+  @override
+  String get repairPhotos => '图片视频';
+
+  @override
+  String get repairImageUploading => '上传中…';
+
+  @override
+  String get repairSchedule => '期望维修时间';
+
+  @override
+  String get repairAllowNoOne => '允许无人时维修';
+
+  @override
+  String get repairBookDate => '选择日期';
+
+  @override
+  String get repairBookTime => '选择时间段';
+
+  @override
+  String get repairNotSelected => '未选择';
+
+  @override
+  String get repairNoBookDate => '暂无可用预约日期';
+
+  @override
+  String get repairNoBookTime => '该日期暂无可用时间段';
+
+  @override
+  String get repairSubmit => '提交报修';
+
+  @override
+  String get repairSubmitSuccess => '报修提交成功';
+
+  @override
+  String get repairSubmitFailed => '报修提交失败，请稍后重试';
+
+  @override
+  String get repairTicket => '报修工单';
+
+  @override
+  String get repairArea => '故障地点';
+
+  @override
+  String get repairAddAddress => '新增地址';
+
+  @override
+  String get repairSelectArea => '请选择区域';
+
+  @override
+  String get repairAddressDetail => '详细地址';
+
+  @override
+  String get repairAddressDetailRequired => '请填写详细地址';
+
+  @override
+  String get repairPhoneRequired => '请填写手机号';
+
+  @override
+  String get repairPhoneInvalid => '手机号格式不正确';
+
+  @override
+  String get repairAddressSaved => '地址已保存';
+
+  @override
+  String get repairImageTypeInvalid => '仅支持 JPG/PNG/HEIC 格式图片';
+
+  @override
+  String get repairImageTooLarge => '图片不能超过 10MB';
 
   @override
   String get serviceHallTitle => '办事大厅';

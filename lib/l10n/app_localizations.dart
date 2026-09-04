@@ -2437,6 +2437,12 @@ abstract class AppLocalizations {
   /// **'Courses'**
   String get planCompletionCourses;
 
+  /// No description provided for @planCompletionPlanFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Training Program'**
+  String get planCompletionPlanFallback;
+
   /// No description provided for @planCompletionRateLimited.
   ///
   /// In en, this message translates to:
@@ -2898,6 +2904,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Operation successful'**
   String get networkDeviceOperationSuccess;
+
+  /// No description provided for @passpointTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Passive Authentication'**
+  String get passpointTitle;
+
+  /// No description provided for @passpointDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Bind device MAC to auto authenticate on campus network'**
+  String get passpointDesc;
+
+  /// No description provided for @passpointAddDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Device'**
+  String get passpointAddDevice;
+
+  /// No description provided for @passpointUserInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'User Information'**
+  String get passpointUserInfo;
+
+  /// No description provided for @passpointUserGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'User Group'**
+  String get passpointUserGroup;
+
+  /// No description provided for @passpointAccountState.
+  ///
+  /// In en, this message translates to:
+  /// **'Account State'**
+  String get passpointAccountState;
+
+  /// No description provided for @passpointOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get passpointOnline;
+
+  /// No description provided for @passpointOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get passpointOffline;
+
+  /// No description provided for @passpointMyDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'My Devices'**
+  String get passpointMyDevices;
+
+  /// No description provided for @passpointExpireTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Expire Time'**
+  String get passpointExpireTime;
+
+  /// No description provided for @passpointExpireLongest.
+  ///
+  /// In en, this message translates to:
+  /// **'Max 6 years'**
+  String get passpointExpireLongest;
+
+  /// No description provided for @passpointExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Exit'**
+  String get passpointExit;
+
+  /// No description provided for @passpointMac.
+  ///
+  /// In en, this message translates to:
+  /// **'MAC Address'**
+  String get passpointMac;
+
+  /// No description provided for @passpointCancelAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Passive Auth'**
+  String get passpointCancelAuth;
+
+  /// No description provided for @passpointCancelAuthConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel passive authentication for this device?'**
+  String get passpointCancelAuthConfirm;
+
+  /// No description provided for @passpointOperationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation successful'**
+  String get passpointOperationSuccess;
+
+  /// No description provided for @operationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation failed'**
+  String get operationFailed;
+
+  /// No description provided for @passpointMacRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter MAC'**
+  String get passpointMacRequired;
+
+  /// No description provided for @passpointMacInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid MAC format, need 12 hex digits'**
+  String get passpointMacInvalid;
+
+  /// No description provided for @passpointExpireRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter binding validity'**
+  String get passpointExpireRequired;
+
+  /// No description provided for @passpointExpireInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Validity must be between 0 and 365'**
+  String get passpointExpireInvalid;
+
+  /// No description provided for @passpointExpireHint.
+  ///
+  /// In en, this message translates to:
+  /// **'0-365 days, 0 means max 6 years'**
+  String get passpointExpireHint;
+
+  /// No description provided for @passpointAddWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: once passive authentication is enabled, the device will auto join the campus network and dormitory traffic will be billed. Please use with caution!'**
+  String get passpointAddWarning;
 
   /// No description provided for @captchaLoadFailed.
   ///
@@ -3522,6 +3666,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Network'**
   String get dockLabelNetworkDevice;
+
+  /// No description provided for @dockLabelPasspoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Passive'**
+  String get dockLabelPasspoint;
 
   /// No description provided for @dockLabelBalanceQuery.
   ///
@@ -4896,6 +5046,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Service Hall'**
   String get dockLabelLeave;
+
+  /// Short dock label for the online repair entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair'**
+  String get dockLabelRepair;
+
+  /// Title of the online repair page.
+  ///
+  /// In en, this message translates to:
+  /// **'Online Repair'**
+  String get repairTitle;
+
+  /// Description of the online repair feature on the campus entry card.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit dorm/classroom facility repairs and track progress'**
+  String get repairDesc;
+
+  /// Tab label of the repair submission form.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get repairTabSubmit;
+
+  /// Tab label of the my repairs list.
+  ///
+  /// In en, this message translates to:
+  /// **'My Repairs'**
+  String get repairTabMyTickets;
+
+  /// Field title of the fault address in the repair form.
+  ///
+  /// In en, this message translates to:
+  /// **'Fault Address'**
+  String get repairAddress;
+
+  /// Hint when no fault address is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a fault address'**
+  String get repairSelectAddress;
+
+  /// Field title of the repair item in the form.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair Item'**
+  String get repairProject;
+
+  /// Hint when no repair item is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a repair item'**
+  String get repairSelectProject;
+
+  /// Hint of the repair category dropdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a category first'**
+  String get repairSelectCategory;
+
+  /// Shown when a category has no available repair items.
+  ///
+  /// In en, this message translates to:
+  /// **'No repair items in this category'**
+  String get repairNoProjectInCategory;
+
+  /// Hint shown before repair items load.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a fault address first to load repair items'**
+  String get repairSelectProjectHint;
+
+  /// Field title of the fault description in the form.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get repairContent;
+
+  /// Placeholder of the description input.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the fault in detail to help the technician bring tools'**
+  String get repairContentHint;
+
+  /// Hint when the description is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in the description'**
+  String get repairContentRequired;
+
+  /// Field title of the photo upload in the form.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos / Videos'**
+  String get repairPhotos;
+
+  /// Button label shown while images are being uploaded on submit.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading image…'**
+  String get repairImageUploading;
+
+  /// Field title of the expected repair time in the form.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected Repair Time'**
+  String get repairSchedule;
+
+  /// Switch for allowing the technician to repair unattended.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow repair when no one is home'**
+  String get repairAllowNoOne;
+
+  /// Expected repair date picker item.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Date'**
+  String get repairBookDate;
+
+  /// Expected repair time slot picker item.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Time Slot'**
+  String get repairBookTime;
+
+  /// Placeholder when no date/time is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not selected'**
+  String get repairNotSelected;
+
+  /// Hint when there are no available booking dates.
+  ///
+  /// In en, this message translates to:
+  /// **'No available booking dates'**
+  String get repairNoBookDate;
+
+  /// Hint when there are no available time slots.
+  ///
+  /// In en, this message translates to:
+  /// **'No available time slots for this date'**
+  String get repairNoBookTime;
+
+  /// Submit button label of the repair form.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Repair'**
+  String get repairSubmit;
+
+  /// Toast after a successful repair submission.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair submitted successfully'**
+  String get repairSubmitSuccess;
+
+  /// Toast after a failed repair submission.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit repair, please try again'**
+  String get repairSubmitFailed;
+
+  /// Generic name of a repair ticket.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair Ticket'**
+  String get repairTicket;
+
+  /// Fault location label in a repair ticket.
+  ///
+  /// In en, this message translates to:
+  /// **'Fault Location'**
+  String get repairArea;
+
+  /// Button to add a repair address.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Address'**
+  String get repairAddAddress;
+
+  /// Hint to select an area when adding an address.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Area'**
+  String get repairSelectArea;
+
+  /// Detailed address field in the add-address form.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed Address'**
+  String get repairAddressDetail;
+
+  /// Hint when the detailed address is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in the detailed address'**
+  String get repairAddressDetailRequired;
+
+  /// Hint when the phone number is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in the phone number'**
+  String get repairPhoneRequired;
+
+  /// Hint when the phone number format is invalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid phone number format'**
+  String get repairPhoneInvalid;
+
+  /// Toast after saving a new address.
+  ///
+  /// In en, this message translates to:
+  /// **'Address saved'**
+  String get repairAddressSaved;
+
+  /// Toast when the selected image format is not supported.
+  ///
+  /// In en, this message translates to:
+  /// **'Only JPG/PNG/HEIC images are supported'**
+  String get repairImageTypeInvalid;
+
+  /// Toast when the selected image exceeds the size limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Image must be smaller than 10MB'**
+  String get repairImageTooLarge;
 
   /// Title for the service hall sub-page listing available matters.
   ///
