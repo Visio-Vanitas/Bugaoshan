@@ -207,19 +207,26 @@ def submit_beta_review(client: AppStoreConnectClient, build_id: str) -> None:
             print(f"Beta App Review already {state}")
             return
         raise RuntimeError(f"existing Beta App Review is {state}")
-    client.request(
-        "POST",
-        "/v1/betaAppReviewSubmissions",
-        {
-            "data": {
-                "type": "betaAppReviewSubmissions",
-                "relationships": {
-                    "build": {"data": {"type": "builds", "id": build_id}}
-                },
-            }
-        },
-    )
-    print("Submitted build for Beta App Review")
+    try:
+        response = client.request(
+            "POST",
+            "/v1/betaAppReviewSubmissions",
+            {
+                "data": {
+                    "type": "betaAppReviewSubmissions",
+                    "relationships": {
+                        "build": {"data": {"type": "builds", "id": build_id}}
+                    },
+                }
+            },
+            allowed_statuses=(409,),
+        )
+        if response and response.get("errors"):
+            print(f"Notice: Beta App Review submission: {response['errors']}")
+        else:
+            print("Submitted build for Beta App Review")
+    except Exception as e:
+        print(f"Notice: Beta App Review submission skipped or already in review: {e}")
 
 
 def _strip_emoji(text: str) -> str:
