@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 env:
-  UPSTREAM_REPOSITORY: Visio-Vanitas/Bugaoshan
+  UPSTREAM_REPOSITORY: The-Brotherhood-of-SCU/Bugaoshan
   UPSTREAM_RELEASE_BASELINE_ID: "0"
   APPLE_TEAM_ID: 2F6UXH5569
   MACOS_BUNDLE_ID: io.github.thebrotherhoodofscu.bugaoshan
@@ -147,7 +147,7 @@ jobs:
       - name: Compute unique build number
         id: buildnum
         run: |
-          unique="$(date -u +%y%m%d)$(printf '%02d' ${{ github.run_attempt }})"
+          unique="$(date -u +%y%m%d%H%M)"
           echo "build_number=$unique" >> "$GITHUB_OUTPUT"
           echo "Build number: $unique"
 

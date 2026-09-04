@@ -71,10 +71,8 @@ def release_work(
     assets = client.release_assets(automation_repository, tag)
     prerelease = bool(release.get("prerelease"))
     needs_dmg = force or asset_name not in assets
-    needs_ios = False
-    if not prerelease:
-        marker = f"tags/{MARKER_PREFIX}{tag}"
-        needs_ios = force or not client.ref_exists(automation_repository, marker)
+    marker = f"tags/{MARKER_PREFIX}{tag}"
+    needs_ios = force or not client.ref_exists(automation_repository, marker)
 
     if not needs_dmg and not needs_ios:
         return None
