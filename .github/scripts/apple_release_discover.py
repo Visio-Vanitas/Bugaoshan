@@ -123,7 +123,10 @@ def discover(
         for release in releases
         if not release.get("draft") and int(release["id"]) > baseline_id
     ]
-    candidates.sort(key=lambda release: (release.get("published_at") or "", release["id"]))
+    candidates.sort(
+        key=lambda release: (release.get("published_at") or "", release["id"]),
+        reverse=True,
+    )
 
     for release in candidates:
         work = release_work(client, release, automation_repository, force=False)
