@@ -55,9 +55,14 @@ class GitHubClient:
         return {asset["name"] for asset in release.get("assets", [])}
 
 
-def release_asset_name(tag: str) -> str:
+def release_dmg_asset_name(tag: str) -> str:
     version = tag[1:] if tag.startswith("v") else tag
     return f"bugaoshan_{version}_macos_arm64.dmg"
+
+
+def release_ipa_asset_name(tag: str) -> str:
+    version = tag[1:] if tag.startswith("v") else tag
+    return f"bugaoshan_{version}_ios_unsigned.ipa"
 
 
 def release_work(
@@ -67,14 +72,17 @@ def release_work(
     force: bool,
 ) -> dict[str, str] | None:
     tag = release["tag_name"]
-    asset_name = release_asset_name(tag)
+    dmg_asset_name = release_dmg_asset_name(tag)
+    ipa_asset_name = release_ipa_asset_name(tag)
     assets = client.release_assets(automation_repository, tag)
     prerelease = bool(release.get("prerelease"))
-    needs_dmg = force or asset_name not in assets
+    needs_dmg = force or dmg_asset_name not in assets
+    needs_unsigned_ipa = force or ipa_asset_name not in assets
     marker = f"tags/{MARKER_PREFIX}{tag}"
-    needs_ios = force or not client.ref_exists(automation_repository, marker)
+    needs_testflight = force or not client.ref_exists(automation_repository, marker)
+    needs_ios = needs_unsigned_ipa or needs_testflight
 
-    if not needs_dmg and not needs_ios:
+    if not needs_dmg and not needs_unsigned_ipa and not needs_testflight:
         return None
 
     return {
@@ -84,9 +92,13 @@ def release_work(
         "release_id": str(release["id"]),
         "published_at": release.get("published_at") or "",
         "prerelease": str(prerelease).lower(),
-        "asset_name": asset_name,
+        "asset_name": dmg_asset_name,
+        "dmg_asset_name": dmg_asset_name,
+        "ipa_asset_name": ipa_asset_name,
         "needs_dmg": str(needs_dmg).lower(),
         "needs_ios": str(needs_ios).lower(),
+        "needs_unsigned_ipa": str(needs_unsigned_ipa).lower(),
+        "needs_testflight": str(needs_testflight).lower(),
     }
 
 

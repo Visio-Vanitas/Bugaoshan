@@ -41,8 +41,12 @@ jobs:
       release_id: ${{ steps.release.outputs.release_id }}
       prerelease: ${{ steps.release.outputs.prerelease }}
       asset_name: ${{ steps.release.outputs.asset_name }}
+      dmg_asset_name: ${{ steps.release.outputs.dmg_asset_name }}
+      ipa_asset_name: ${{ steps.release.outputs.ipa_asset_name }}
       needs_dmg: ${{ steps.release.outputs.needs_dmg }}
       needs_ios: ${{ steps.release.outputs.needs_ios }}
+      needs_unsigned_ipa: ${{ steps.release.outputs.needs_unsigned_ipa }}
+      needs_testflight: ${{ steps.release.outputs.needs_testflight }}
     steps:
       - name: Checkout automation
         uses: actions/checkout@v4
@@ -218,6 +222,11 @@ jobs:
           tar -czf "$RUNNER_TEMP/ios-unsigned.tar.gz" \
             -C build/ios/archive Runner.xcarchive
 
+          # Package unsigned IPA for sideloading
+          mkdir -p "$RUNNER_TEMP/payload/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/payload/Payload/"
+          (cd "$RUNNER_TEMP/payload" && zip -qr "$RUNNER_TEMP/${{ needs.discover.outputs.ipa_asset_name }}" Payload)
+
       - name: Upload unsigned macOS archive
         if: needs.discover.outputs.needs_dmg == 'true'
         uses: actions/upload-artifact@v4
@@ -228,13 +237,64 @@ jobs:
           if-no-files-found: error
 
       - name: Upload unsigned iOS archive
-        if: needs.discover.outputs.needs_ios == 'true'
+        if: needs.discover.outputs.needs_testflight == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: unsigned-ios-${{ needs.discover.outputs.release_id }}
           path: ${{ runner.temp }}/ios-unsigned.tar.gz
           retention-days: 1
           if-no-files-found: error
+
+      - name: Upload unsigned iOS IPA
+        if: needs.discover.outputs.needs_unsigned_ipa == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-ipa-${{ needs.discover.outputs.release_id }}
+          path: ${{ runner.temp }}/${{ needs.discover.outputs.ipa_asset_name }}
+          retention-days: 1
+          if-no-files-found: error
+
+  publish-unsigned-ipa:
+    name: Publish unsigned iOS IPA to mirror release
+    needs: [discover, build-unsigned]
+    if: needs.discover.outputs.needs_unsigned_ipa == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.discover.outputs.tag }}
+      IPA_ASSET_NAME: ${{ needs.discover.outputs.ipa_asset_name }}
+      UPSTREAM_PRERELEASE: ${{ needs.discover.outputs.prerelease }}
+    steps:
+      - name: Download unsigned iOS IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-ipa-${{ needs.discover.outputs.release_id }}
+          path: ${{ runner.temp }}
+
+      - name: Upload unsigned IPA to mirror release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            create_args=(
+              release create "$RELEASE_TAG"
+              --repo "$GITHUB_REPOSITORY"
+              --target "$GITHUB_SHA"
+              --title "$RELEASE_TAG"
+              --notes "Automated Apple build for https://github.com/$UPSTREAM_REPOSITORY/releases/tag/$RELEASE_TAG"
+            )
+            if [[ "$UPSTREAM_PRERELEASE" == "true" ]]; then
+              create_args+=(--prerelease)
+            fi
+            gh "${create_args[@]}"
+          fi
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --prerelease="$UPSTREAM_PRERELEASE"
+          gh release upload "$RELEASE_TAG" "${{ runner.temp }}/$IPA_ASSET_NAME" \
+            --repo "$GITHUB_REPOSITORY" --clobber
 
   publish-dmg:
     name: Sign, notarize, and publish mirror DMG
@@ -357,7 +417,7 @@ jobs:
   publish-testflight:
     name: Sign, upload, and submit TestFlight build
     needs: [discover, build-unsigned]
-    if: needs.discover.outputs.needs_ios == 'true'
+    if: needs.discover.outputs.needs_testflight == 'true'
     runs-on: macos-15
     timeout-minutes: 75
     permissions:
