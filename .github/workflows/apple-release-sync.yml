@@ -102,11 +102,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout upstream release tag
+      - name: Checkout release source
         uses: actions/checkout@v4
         with:
-          repository: ${{ env.UPSTREAM_REPOSITORY }}
-          ref: ${{ needs.discover.outputs.tag }}
+          repository: ${{ github.repository }}
+          ref: main
           fetch-depth: 0
           persist-credentials: false
           path: source
