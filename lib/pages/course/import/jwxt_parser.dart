@@ -65,8 +65,29 @@ void validateImportedSchedule(ScheduleConfig config, List<Course> courses) {
         final int startSection = tpMap['classSessions'] as int;
         final int continuingSession = tpMap['continuingSession'] as int;
         final int endSection = startSection + continuingSession - 1;
-        final String location =
-            '${tpMap['teachingBuildingName'] ?? ''}${tpMap['classroomName'] ?? ''}';
+        final String building =
+            (tpMap['teachingBuildingName'] ??
+                    tpMap['jxlm'] ??
+                    tpMap['building'] ??
+                    '')
+                .toString();
+        final String room =
+            (tpMap['classroomName'] ??
+                    tpMap['jasm'] ??
+                    tpMap['classroom'] ??
+                    '')
+                .toString();
+        var location = '$building$room'.trim();
+        if (location.isEmpty) {
+          location =
+              (tpMap['customPlace'] ??
+                      tpMap['teachingPlace'] ??
+                      tpMap['place'] ??
+                      tpMap['skdd'] ??
+                      '')
+                  .toString();
+          location = location.trim();
+        }
         final String campusName = tpMap['campusName'] as String? ?? '';
         final String classWeek = tpMap['classWeek'] as String? ?? '';
 
