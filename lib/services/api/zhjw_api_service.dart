@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:bugaoshan/pages/campus/models/class_schedule_inquiry_model.dart';
 import 'package:bugaoshan/pages/campus/models/classroom_model.dart';
+import 'package:bugaoshan/pages/campus/models/course_curriculum_model.dart';
 import 'package:bugaoshan/pages/campus/plan_completion/models/plan_completion.dart';
 import 'package:bugaoshan/pages/campus/exam_plan/models/exam_info.dart';
 import 'package:bugaoshan/pages/campus/train_program/models/train_program.dart';
@@ -40,6 +41,9 @@ class ZhjwApiService {
   ///
   /// zhjw 在 session 过期时返回 302、空 body 或 HTML 登录页。
   /// 检测到时抛 [UnauthenticatedException]，由 [_request] 捕获重试。
+  /// 登录页用 [looksLikeLoginPage] 的强特征组合判断，不做裸 login 子串
+  /// 匹配——正常业务页（如选课页含 loginStatus/clientLogin）不能误伤
+  /// （issue #282）。
   void _checkSessionExpiry(String body, int statusCode) {
     if (statusCode == 302) {
       throw const UnauthenticatedException();
@@ -47,7 +51,7 @@ class ZhjwApiService {
     if (body.trim().isEmpty) {
       throw const UnauthenticatedException();
     }
-    if (body.startsWith('<') && body.contains('login')) {
+    if (looksLikeLoginPage(body)) {
       throw const UnauthenticatedException();
     }
   }
@@ -160,7 +164,7 @@ class ZhjwApiService {
         r'var\s+url\s*=\s*"(/student/integratedQuery/scoreQuery/[^/]+/allPassingScores/callback)"',
       ).firstMatch(indexBody);
       if (urlMatch == null) {
-        if (indexBody.contains('login') || indexBody.contains('Login')) {
+        if (looksLikeLoginPage(indexBody)) {
           throw const UnauthenticatedException();
         }
         throw const ServiceException('无法从页面提取 allPassingScores callback URL');
@@ -206,7 +210,7 @@ class ZhjwApiService {
         r'var\s+url\s*=\s*"(/student/integratedQuery/scoreQuery/[^/]+/schemeScores/callback)"',
       ).firstMatch(indexBody);
       if (urlMatch == null) {
-        if (indexBody.contains('login') || indexBody.contains('Login')) {
+        if (looksLikeLoginPage(indexBody)) {
           throw const UnauthenticatedException();
         }
         throw const ServiceException('无法从页面提取 schemeScores callback URL');
@@ -565,7 +569,7 @@ class ZhjwApiService {
       //    - 页面是登录页/会话过期页 → 抛 UnauthenticatedException 走重认证；
       //    - 其它无法识别的 HTML（如错误页）→ 抛 ServiceException，
       //      避免触发重认证风暴（每次都会重新 SSO，进一步触发限流）。
-      if (body.toLowerCase().contains('login')) {
+      if (looksLikeLoginPage(body)) {
         throw const UnauthenticatedException();
       }
       throw const ServiceException('方案修读数据格式异常：页面无法解析');
@@ -774,6 +778,156 @@ class ZhjwApiService {
       _checkSessionExpiry(body, resp.statusCode);
       final json = jsonDecode(body) as List<dynamic>;
       final list = (json.isNotEmpty ? json[0] : []) as List<dynamic>;
+      return list
+          .map(
+            (e) => ClassScheduleInquiryItem.fromJson(e as Map<String, dynamic>),
+          )
+          .toList();
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  课程课表
+  // ═══════════════════════════════════════════════════════════════════
+
+  /// 获取课程课表首页的筛选选项（学年学期 / 开课院系 / 课程类别）
+  Future<
+    ({
+      List<SemesterOption> semesters,
+      List<DepartmentOption> departments,
+      List<CourseCategoryOption> categories,
+    })
+  >
+  fetchCourseCurriculumIndex() {
+    return _request((client) async {
+      final resp = await client.get(
+        Uri.parse(
+          '$kZhjwBase/student/teachingResources/courseCurriculum/index',
+        ),
+        headers: {
+          'Accept': 'text/html,*/*',
+          'Referer': '$kZhjwBase/',
+          'User-Agent': kDefaultUserAgent,
+        },
+      );
+      final body = resp.body.trim();
+      _checkSessionExpiry(body, resp.statusCode);
+
+      final semesterOptions = _parseSelectOptions(body, 'zxjxjhh');
+      final semesters = semesterOptions
+          .where((o) => o.value.isNotEmpty)
+          .map((o) => SemesterOption(value: o.value, label: o.label))
+          .toList();
+
+      final deptOptions = _parseSelectOptions(body, 'kkxsh');
+      final departments = deptOptions
+          .where((o) => o.value.isNotEmpty)
+          .map((o) => DepartmentOption(value: o.value, name: o.label))
+          .toList();
+
+      final categoryOptions = _parseSelectOptions(body, 'kclb');
+      final categories = categoryOptions
+          .where((o) => o.value.isNotEmpty)
+          .map((o) => CourseCategoryOption(code: o.value, name: o.label))
+          .toList();
+
+      return (
+        semesters: semesters,
+        departments: departments,
+        categories: categories,
+      );
+    });
+  }
+
+  /// 搜索课程列表（支持学期 / 院系 / 课程名 / 课程号 / 课序号 / 课程类别筛选）
+  Future<({List<CourseSectionInfo> courses, int totalCount})> fetchCourseList({
+    int pageNum = 1,
+    int pageSize = 30,
+    String semester = '',
+    String department = '',
+    String courseName = '',
+    String courseCode = '',
+    String courseSeq = '',
+    String category = '',
+  }) {
+    return _request((client) async {
+      final resp = await client.post(
+        Uri.parse(
+          '$kZhjwBase/student/teachingResources/courseCurriculum/search',
+        ),
+        headers: {
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Referer':
+              '$kZhjwBase/student/teachingResources/courseCurriculum/index',
+          'User-Agent': kDefaultUserAgent,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body:
+            'zxjxjhh=${Uri.encodeComponent(semester)}'
+            '&kkxsh=${Uri.encodeComponent(department)}'
+            '&kcm=${Uri.encodeComponent(courseName)}'
+            '&kch=${Uri.encodeComponent(courseCode)}'
+            '&kxh=${Uri.encodeComponent(courseSeq)}'
+            '&kclb=${Uri.encodeComponent(category)}'
+            '&pageNum=$pageNum&pageSize=$pageSize',
+      );
+      final body = resp.body.trim();
+      _checkSessionExpiry(body, resp.statusCode);
+      // 网关异常时可能返回非 JSON 文本（如 502 页面），解析失败抛
+      // ServiceException 而不是让 FormatException 裸奔。
+      final json = parseJson(
+        body,
+        'jwxt/courseCurriculum/search',
+        (msg) => ServiceException('课程列表数据格式异常：$msg'),
+      );
+      final records = (json['records'] as List<dynamic>?) ?? [];
+      final totalCount =
+          (json['pageContext']?['totalCount'] as num?)?.toInt() ?? 0;
+      final courses = records
+          .map((e) => CourseSectionInfo.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return (courses: courses, totalCount: totalCount);
+    });
+  }
+
+  /// 获取指定课程（教学班）的课表，返回结构与班级课表一致
+  Future<List<ClassScheduleInquiryItem>> fetchCourseSchedule({
+    required String planCode,
+    required String courseCode,
+    required String courseSequenceCode,
+  }) {
+    return _request((client) async {
+      final resp = await client.get(
+        Uri.parse(
+          '$kZhjwBase/student/teachingResources/courseCurriculum'
+          '/searchCurriculum/callback'
+          '?planCode=${Uri.encodeComponent(planCode)}'
+          '&courseCode=${Uri.encodeComponent(courseCode)}'
+          '&courseSequenceCode=${Uri.encodeComponent(courseSequenceCode)}',
+        ),
+        headers: {
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'Referer':
+              '$kZhjwBase/student/teachingResources/courseCurriculum/index',
+          'User-Agent': kDefaultUserAgent,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      );
+      final body = resp.body.trim();
+      _checkSessionExpiry(body, resp.statusCode);
+      // 响应结构为 [[item, item, ...]]：外层数组只有一个元素，内层才是课表项。
+      // 解析失败或外层元素不是数组都按格式异常处理，不再裸强转。
+      final json = parseJsonList(
+        body,
+        'jwxt/courseCurriculum/searchCurriculum',
+        (msg) => ServiceException('课程课表数据格式异常：$msg'),
+      );
+      if (json.isEmpty) return const <ClassScheduleInquiryItem>[];
+      final list = json.first;
+      if (list is! List<dynamic>) {
+        throw const ServiceException('课程课表数据格式异常：外层元素不是数组');
+      }
       return list
           .map(
             (e) => ClassScheduleInquiryItem.fromJson(e as Map<String, dynamic>),
