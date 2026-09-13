@@ -319,7 +319,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get about => '关于';
 
   @override
-  String get featureGuideAndFaq => '功能介绍与常见问题';
+  String get userManual => '用户手册';
 
   @override
   String get developmentTeam => '开发团队';

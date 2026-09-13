@@ -52,7 +52,7 @@ class ProfileMenuCard extends StatelessWidget {
         ),
         LinkTile(
           icon: Icons.menu_book_rounded,
-          label: localizations.featureGuideAndFaq,
+          label: localizations.userManual,
           onTap: openUserManual,
         ),
         ValueListenableBuilder<bool>(

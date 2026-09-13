@@ -332,7 +332,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get about => 'About';
 
   @override
-  String get featureGuideAndFaq => 'Features & FAQ';
+  String get userManual => 'User Manual';
 
   @override
   String get developmentTeam => 'Dev Team';

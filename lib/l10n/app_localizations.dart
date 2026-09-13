@@ -697,11 +697,11 @@ abstract class AppLocalizations {
   /// **'About'**
   String get about;
 
-  /// No description provided for @featureGuideAndFaq.
+  /// No description provided for @userManual.
   ///
   /// In en, this message translates to:
-  /// **'Features & FAQ'**
-  String get featureGuideAndFaq;
+  /// **'User Manual'**
+  String get userManual;
 
   /// No description provided for @developmentTeam.
   ///
