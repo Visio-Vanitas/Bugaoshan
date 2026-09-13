@@ -51,6 +51,9 @@ class _MyAppState extends State<MyApp> {
         _appConfig.themeColor,
         _appConfig.themeColorMode,
         _appConfig.useGoogleFonts,
+        // 页面转场时长/开关跟随设置变化，需要重建 MaterialApp 使新主题生效
+        _appConfig.cardSizeAnimationDuration,
+        _appConfig.enablePageTransitionAnimation,
       ]),
       builder: (context, _) => MaterialApp(
         navigatorKey: navigatorKey,
@@ -100,6 +103,8 @@ class _MyAppState extends State<MyApp> {
       seedColor: seedColor,
       useGoogleFonts: _appConfig.useGoogleFonts.value,
       textScale: textScale,
+      pageTransitionDuration: _appConfig.cardSizeAnimationDuration.value,
+      pageTransitionEnabled: _appConfig.enablePageTransitionAnimation.value,
     );
   }
 }
