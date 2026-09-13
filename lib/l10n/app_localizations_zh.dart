@@ -354,7 +354,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get projectRepository => '项目仓库';
 
   @override
-  String get officialWebsite => '官网';
+  String get officialWebsite => '官方网站';
 
   @override
   String get checkForUpdates => '检查更新';
