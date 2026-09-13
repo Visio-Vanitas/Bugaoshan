@@ -697,6 +697,12 @@ abstract class AppLocalizations {
   /// **'About'**
   String get about;
 
+  /// No description provided for @userManual.
+  ///
+  /// In en, this message translates to:
+  /// **'User Manual'**
+  String get userManual;
+
   /// No description provided for @developmentTeam.
   ///
   /// In en, this message translates to:
@@ -756,6 +762,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Repository'**
   String get projectRepository;
+
+  /// No description provided for @officialWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get officialWebsite;
 
   /// No description provided for @checkForUpdates.
   ///
